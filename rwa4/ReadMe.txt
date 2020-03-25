@@ -4,12 +4,12 @@
 
 Direct to your catkin_ws directory and run
 
- `catkin_make --only-pkg-with-deps group7_rwa4`
+ `catkin_make --only-pkg-with-deps rwa4`
 
 ### **How to run**
 To launch the environment, open a terminal and run
 
- `roslaunch group7_rwa4 group7_rwa4.launch`
+ `roslaunch rwa4 rwa4.launch`
 
 Open two different terminals and run
 
@@ -19,7 +19,7 @@ Open two different terminals and run
 
 Open the 4th terminal and run
 
- `rosrun group7_rwa4 main_node`
+ `rosrun rwa4 main_node`
 
 Open 5th terminal, wait for all robots be stationary, then run
 
