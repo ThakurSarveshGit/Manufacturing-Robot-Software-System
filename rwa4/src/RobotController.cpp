@@ -6,7 +6,7 @@
 
 #include "RobotController.h"
 
-// -- Constructor
+// -- Constructor for RobotController class
 RobotController::RobotController(std::string arm_id):
 	robot_controller_nh_("/ariac/"+arm_id),
 	robot_controller_options("manipulator","/ariac/"+arm_id+"/robot_description",robot_controller_nh_),
@@ -23,33 +23,39 @@ RobotController::RobotController(std::string arm_id):
 	// robot_move_group_.setEndEffector("moveit_ee");
 	robot_move_group_.allowReplanning(true);
 
-	// Joint Positions for Home Position
-	// Pose 0
-    home_joint_pose_0["linear_arm_actuator_joint"] = 0;
-    home_joint_pose_0["shoulder_pan_joint"] = 0;
-    home_joint_pose_0["shoulder_lift_joint"] = -1.55;
-    home_joint_pose_0["elbow_joint"] = 1.55;
-    home_joint_pose_0["wrist_1_joint"] = 0;
-    home_joint_pose_0["wrist_2_joint"] = 0;
-    home_joint_pose_0["wrist_3_joint"] = 0;
+	/*Joint Positions for Home Position
+    home_joint_pose_ = {0.0, 3.1, -1.1, 1.9, 3.9, 4.7, 0};
+	*/
 
-    // Pose 1
-    home_joint_pose_1["linear_arm_actuator_joint"] = -0.19;
+    // Pose 1: Arm 1 Home position: Get in a picking position
+    home_joint_pose_1["linear_arm_actuator_joint"] = -0.2; // BB2 is placed at y = 0.95 // Placed directly next to BB2.
     home_joint_pose_1["shoulder_pan_joint"] = 0;
-    home_joint_pose_1["shoulder_lift_joint"] = -0.8;
+    home_joint_pose_1["shoulder_lift_joint"] = -0.95;// -0.95
     home_joint_pose_1["elbow_joint"] = 1.6;
-    home_joint_pose_1["wrist_1_joint"] = 3.9;
-    home_joint_pose_1["wrist_2_joint"] = 4.7;
+    home_joint_pose_1["wrist_1_joint"] = 3.9; // -2.45
+    home_joint_pose_1["wrist_2_joint"] = -1.57;
     home_joint_pose_1["wrist_3_joint"] = 0;
 
+	// Pose 2: Arm 2 Home Position: Get over the Bin containing Gears
+    home_joint_pose_2["linear_arm_actuator_joint"] = -0.56;
+    home_joint_pose_2["shoulder_pan_joint"] = 2;
+    home_joint_pose_2["shoulder_lift_joint"] = 0;
+    home_joint_pose_2["elbow_joint"] = 0;
+    home_joint_pose_2["wrist_1_joint"] = -3.14/2;
+    home_joint_pose_2["wrist_2_joint"] = -3.14/2;
+    home_joint_pose_2["wrist_3_joint"] = 0;
+
     // --offset used for picking up parts
-    offset_ = 0.025;
+    offset_ = 0.025; // -- An Li:0.02
 
     // Subscribe to get the status of the gripper
     gripper_subscriber_ = gripper_nh_.subscribe("/ariac/arm1/gripper/state",10,&RobotController::GripperCallback, this);
     
-    // SendRobotTo(home_joint_pose_0); // Send Robot to Pose 0
-    SendRobotTo(home_joint_pose_1); // Send Robot to Pose 1
+    if (arm_id == "arm1")
+    	SendRobotTo(home_joint_pose_1); // Send Arm1 to Pose 1
+    else
+    	SendRobotTo(home_joint_pose_2); // Send Arm2 to Pose 0
+    
 
     // Get Pose of EE w.r.t Base of the Arm
     robot_tf_listener_.waitForTransform("arm1_linear_arm_actuator", "arm1_ee_link", ros::Time(0), ros::Duration(10));
@@ -64,9 +70,6 @@ RobotController::RobotController(std::string arm_id):
     tf::Matrix3x3(q).getRPY(roll_def_,pitch_def_,yaw_def_);
 
     end_position_ = home_joint_pose_1;
-    //  end_position_[0] = 2.2;
-    //  end_position_[1] = 4.5;
-    //  end_position_[2] = 1.2;
 
     // Get World pose of Arm EE
     robot_tf_listener_.waitForTransform("world", "arm1_ee_link", ros::Time(0),
@@ -104,7 +107,7 @@ RobotController::~RobotController(){}
 // -- Planner: Mutlithreading required?
 bool RobotController::Planner(){
 	ROS_INFO_STREAM("[RobotController]: [Planner]: Planning Started...");
-	// armSpinner.start(); // Will this ask for a new thread? I guess we have already stated that?
+	armSpinner.start(); // Will this ask for a new thread? I guess we have already stated that?
 
 	if (robot_move_group_.plan(robot_planner_) == moveit::planning_interface::MoveItErrorCode::SUCCESS)
 		plan_success_ = true;
@@ -118,7 +121,7 @@ bool RobotController::Planner(){
 // -- Execute(): Mutlithreading required?
 void RobotController::Execute(){
 	/* When you want to reach a known pose[with known joint angles], use Execute()*/
-	// armSpinner.start();
+	armSpinner.start();
 
 	// If planning was successful for the arm, execute
 	if (this->Planner()){
@@ -133,7 +136,7 @@ void RobotController::GoToTarget(const geometry_msgs::Pose& pose){
 	ROS_INFO_STREAM("[RobotController]:[GoToTarget[1]]: Function Called");
 	target_pose_.orientation = fixed_orientation_; // Keep the EE pose as earlier; Dont Change
 	target_pose_.position = pose.position; // Just reach the position
-	// armSpinner.start(); // Is it required? : 
+	armSpinner.start(); // Is it required? : 
 
 	robot_move_group_.setPoseTarget(target_pose_);
 
@@ -149,8 +152,7 @@ void RobotController::GoToTarget(const geometry_msgs::Pose& pose){
 // --GoToTarget(): Reach a series of poses
 void RobotController::GoToTarget(std::initializer_list<geometry_msgs::Pose> list){
 	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Function Called");
-	// armSpinner.start(); // Is it required? : 
-	armSpinner.start();
+	armSpinner.start(); // Is it required? : 
 
 	std::vector<geometry_msgs::Pose> waypoints;
 	
@@ -161,18 +163,17 @@ void RobotController::GoToTarget(std::initializer_list<geometry_msgs::Pose> list
         i.orientation.w = fixed_orientation_.w;
         waypoints.emplace_back(i);
 	}
-
-	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: After forLoop execution");
+	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: Created waypoints");
 
 	moveit_msgs::RobotTrajectory traj;
 	auto fraction = robot_move_group_.computeCartesianPath(waypoints, 0.01, 0.0, traj, true); // Get Trajectory and compute fraction(safety?)
-	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: After computeCartesianPath");
+	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: Computed cartesian path");
 
 	robot_planner_.trajectory_ = traj;
-	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: After trajectory assignment");
+	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: Trajectory planning completed");
 
-	robot_move_group_.execute(robot_planner_);
-	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: After robot_move_group_.execute");
+	robot_move_group_.execute(robot_planner_); // Asking moveIt to move the arm to the final pose through the waypoints.
+	ROS_INFO_STREAM("[RobotController]:[GoToTarget[2]]: Debug: Endpoint reached");
 
 	ros::Duration(1.0).sleep();
 }
@@ -181,7 +182,7 @@ void RobotController::GoToTarget(std::initializer_list<geometry_msgs::Pose> list
 void RobotController::SendRobotTo(std::map<std::string, double> desire_joint_states){
 	robot_move_group_.setJointValueTarget(desire_joint_states);
     // this->execute();
-    // armSpinner.start(); // Is it required?
+    armSpinner.start(); // Is it required?
     if (this->Planner()) {
         robot_move_group_.move();
         ros::Duration(1).sleep();
@@ -247,30 +248,45 @@ bool RobotController::DropPart(geometry_msgs::Pose part_pose){
 	return gripper_state_;
 }
 
-// -- GripperCallback ; Setter for current gripper state
+// -- GripperCallback ; Setter for current gripper state; 'true' if an object is attached.
 void RobotController::GripperCallback(const osrf_gear::VacuumGripperState::ConstPtr& grip){
 	gripper_state_ = grip->attached;
 }
 
 
-// -- PickPart ;
+// -- PickPart() is called inside BB2 calback function in AriacSensorManager.
 bool RobotController::PickPart(geometry_msgs::Pose& part_pose){
     // gripper_state = false;
     // pick = true;
     //ROS_INFO_STREAM("fixed_orientation_" << part_pose.orientation = fixed_orientation_);
     //ROS_WARN_STREAM("Picking the part...");
-
-    ROS_INFO_STREAM("[RobotController]:[PickPart]: Setting temp_pose");
-    part_pose.position.z = part_pose.position.z + offset_;
+	ROS_INFO_STREAM("[RobotController]:[PickPart]: Recieved Instruction to Pick part!");
+    ROS_INFO_STREAM("[RobotController]:[PickPart]: Setting temp_pose . . .");
+    part_pose.position.z = part_pose.position.z + offset_; // Go above that part
     auto temp_pose_1 = part_pose;
-    temp_pose_1.position.z += 0.3;
-    ROS_INFO_STREAM("[RobotController]:[PickPart]: Calling GoToTaget(List)");
-    this->GoToTarget({temp_pose_1, part_pose});
+    temp_pose_1.position.z += 0.2; // Again add an offset above it; create a waypoint
 
-    ROS_INFO_STREAM("[RobotController]:[PickPart]: Actuating the gripper..." << part_pose.position.z);
+    // todo: Make a conditional block to increment/reduce temp_pose_1 z value if the part
+    // is a pulley. Use Gazebo Pose info for pulley and other parts to determine this.
+    
+    // Step 1: Go above the part then come 
+    ROS_INFO_STREAM("[RobotController]:[PickPart]: Calling GoToTarget(List)");
+    // this->GoToTarget(part_pose); // Directly go down
+
+
+    this->GoToTarget({temp_pose_1, part_pose}); // First go to temp_pose then part_pose
+
+
+    // Step 2: Activate the gripper
+    ROS_INFO_STREAM("[RobotController]:[PickPart]: Activating gripper" << part_pose.position.z);
     this->GripperToggle(true);
     ros::spinOnce();
 
+    // Step 3: Sucking the Part
+    ROS_INFO_STREAM("[RobotController]:[PickPart]: Grabbing the part");
+    ROS_INFO_STREAM("[RobotController]:[PickPart]: Current gripper state:" << gripper_state_);
+    
+    // While the object is not attached
     while (!gripper_state_) {
         part_pose.position.z -= 0.01;
         this->GoToTarget({temp_pose_1, part_pose});

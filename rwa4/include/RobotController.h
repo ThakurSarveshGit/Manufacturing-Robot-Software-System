@@ -76,8 +76,8 @@ private:
 	std::string object;
 	bool plan_success_;
 
-	std::map<std::string, double> home_joint_pose_0;
-	std::map<std::string, double> home_joint_pose_1;
+	std::map<std::string, double> home_joint_pose_1; // Home pose for Arm1
+	std::map<std::string, double> home_joint_pose_2; // Home pose for Arm2
 	std::map<std::string, double> end_position_;
 
 	geometry_msgs::Pose home_cart_pose_;
@@ -88,7 +88,7 @@ private:
 	double roll_def_, pitch_def_, yaw_def_;
 	tf::Quaternion q;
 	int counter_;
-	bool gripper_state_, drop_flag_;
+	bool gripper_state_, drop_flag_; // Used inside PickPart()
 
 	ros::AsyncSpinner armSpinner;
 };

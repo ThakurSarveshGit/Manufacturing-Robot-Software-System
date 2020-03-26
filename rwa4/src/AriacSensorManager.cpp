@@ -32,14 +32,14 @@ AriacSensorManager::~AriacSensorManager(){}
 
 // -- Order Callback
 void AriacSensorManager::order_callback(const osrf_gear::Order::ConstPtr & order_msg){
-	ROS_INFO_STREAM("[ASM]:Received Order:\n" << *order_msg);
+	ROS_INFO_STREAM("[ASM]:[order_callback]: Received Order:\n" << *order_msg);
 	received_orders_.push_back(*order_msg);
 	setDesiredParts();
 }
 
 // Helper Function: List the parts we are interested in [Reading the Order Details]
 void AriacSensorManager::setDesiredParts(){
-	ROS_INFO_STREAM("[ASM]:[setDesiredParts]: Making a List of kit parts to assemble\n");
+	ROS_INFO_STREAM("[ASM]:[setDesiredParts]: Making a List of kit parts to assemble");
 	
 	auto current_order = received_orders_[order_number]; // Complete Order Message
 	auto order_id = current_order.order_id; // Order ID
@@ -63,18 +63,18 @@ void AriacSensorManager::setDesiredParts(){
 		++order_number; // Everytime order_callback() is called; this will get incremented
 }
 
-// -- Logical Camera on the Conveyer Belt Callback Function
+// -- Logical Camera on the Conveyer Belt Callback Function; Subsciber callback for: lc_belt_sub initialized inside bb_1_callback
 void AriacSensorManager::lc_belt_callback(const osrf_gear::LogicalCameraImage::ConstPtr& image_msg){
 
-	// ros::AsyncSpinner spinner(0);
-	// spinner.start();
+	ros::AsyncSpinner spinner(0);
+	spinner.start();
 
 	if (image_msg->models.size() == 0){
 		ROS_WARN_THROTTLE(5, "[ASM]:[lc_belt_callback]: LC detects nothing!");
 		return;
 	}
 
-	ROS_INFO_STREAM("[ASM]:[lc_belt_callback]: LC detects "<< image_msg->models.size() <<" objects!\n");
+	ROS_INFO_STREAM("[ASM]:[lc_belt_callback]: LC detects "<< image_msg->models.size() <<" objects!");
 
 	ros::Duration timeout(0.2);
 	tf2_ros::Buffer tfBuffer;
@@ -92,7 +92,7 @@ void AriacSensorManager::lc_belt_callback(const osrf_gear::LogicalCameraImage::C
 		// Frame name of that part
 		std::string camera_frame = "lc_belt_" + msg.type + "_" + to_string(part_counter[msg.type]) + "_frame";
 
-		ROS_INFO_STREAM("[ASM]:[lc_belt_callback]: Frame name: " << camera_frame);
+		ROS_INFO_STREAM("[ASM]:[lc_belt_callback]: New part frame: " << camera_frame);
 
 		// Get World Pose of the part
 		try{
@@ -102,8 +102,8 @@ void AriacSensorManager::lc_belt_callback(const osrf_gear::LogicalCameraImage::C
 
 			geometry_msgs::Pose part_pose;
 			part_pose.position.x = transformStamped.transform.translation.x;
-			part_pose.position.y = transformStamped.transform.translation.y;
-			// part_pose.position.y = 0.9;
+			// part_pose.position.y = transformStamped.transform.translation.y;
+			part_pose.position.y = 0.9; // This is hard-coded! 
 			part_pose.position.z = transformStamped.transform.translation.z;
             
             part_pose.orientation.x = transformStamped.transform.rotation.x;
@@ -124,8 +124,8 @@ void AriacSensorManager::lc_belt_callback(const osrf_gear::LogicalCameraImage::C
 
 // -- lc_gear_callback()
 void AriacSensorManager::lc_gear_callback(const osrf_gear::LogicalCameraImage::ConstPtr & image_msg){
-	// ros::AsyncSpinner spinner(0);
-	// spinner.start();
+	ros::AsyncSpinner spinner(0);
+	spinner.start();
 
 	if (image_msg->models.size() == 0){
 		ROS_WARN_THROTTLE(5, "[ASM]:[lc_gear_callback]: LC detects nothing!");
@@ -191,29 +191,30 @@ void AriacSensorManager::qc_2_callback(const osrf_gear::LogicalCameraImage::Cons
 
 // -- BreakBeam 1 Callback
 void AriacSensorManager::bb_1_callback(const osrf_gear::Proximity::ConstPtr &msg){
-	// ros::AsyncSpinner spinner(0);
-	// spinner.start();
+	ros::AsyncSpinner spinner(0);
+	spinner.start();
 
 	if (msg->object_detected){
+		ROS_INFO_STREAM("[ASM]:[bb_1_callback]: BB1 Triggered. Subscribing to LC on Belt.");
 		lc_belt_sub = sensor_nh_.subscribe("/ariac/lc_belt", 10, &AriacSensorManager::lc_belt_callback, this);
 	}
 }
 
 // -- BreakBeam 2 Callback /* -- This function asks the arm1 to pick up the part from the conveyer belt*/
 void AriacSensorManager::bb_2_callback(const osrf_gear::Proximity::ConstPtr &msg){
-	// ros::AsyncSpinner spinner(0);
-	// spinner.start();
+	ros::AsyncSpinner spinner(0);
+	spinner.start();
 
 	if (msg->object_detected){
-		ROS_INFO_STREAM("[ASM]:[bb_2_callback]: BB Triggered. Part: " << part_list.front().first);
+		ROS_INFO_STREAM("[ASM]:[bb_2_callback]: BB2 Triggered. Part: " << part_list.front().first);
 		auto element_itr = desired_parts.find(part_list.front().first);
 		if (element_itr != desired_parts.end()){// If element in Desired Part List
-			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Pick this part! ");
-			auto part_frame = part_pose_list[part_list.front().second];
-			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Desired part frame name: \n" << part_frame);
+			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Pick this part!");
+			auto part_world_pose = part_pose_list[part_list.front().second];
+			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Desired part frame name: \n" << part_world_pose);
 			
 			// If arm1 was successful in picking up the element, remove it from the desired parts set
-			bool if_pick = arm1.PickPart(part_frame);
+			bool if_pick = arm1.PickPart(part_world_pose); // PickPart picks up the 
 			if (if_pick)
 				desired_parts.erase(element_itr);
 		}
