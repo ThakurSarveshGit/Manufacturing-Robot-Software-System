@@ -42,14 +42,18 @@ public:
 	void SendRobotTo(std::map<std::string, double>);
 	bool DropPart(geometry_msgs::Pose pose);
 	void GripperToggle(const bool& state);
+	// bool checkFaulty(std::string frameName); // -- Check if a part is faulty or not. // Shifted this function to AriacSensorManager
 
 	void GripperCallback(const osrf_gear::VacuumGripperState::ConstPtr & grip); // callback when msg arrive at gripper/state topic
 	void GripperStateCheck(geometry_msgs::Pose pose);
 	bool PickPart(geometry_msgs::Pose& part_pose); // Give the world pose of a part and the arm will pick it up; Returns true if successful.
 
+	std::string arm_name; // used in the bb_2_callback() to direct the right arm to do a thing
+
 private:
 	
 	// Subscriber/Publisher of other arm's linear actuator pose
+
 	ros::Subscriber line_act_pose_sub;
 	ros::Publisher line_act_pose_pub;
 
@@ -83,6 +87,7 @@ private:
 	geometry_msgs::Pose home_cart_pose_;
 	geometry_msgs::Quaternion fixed_orientation_;
 	geometry_msgs::Pose agv_position_;
+	geometry_msgs::Pose afterPickUpPose_; // Pose of EE fter picking up part from the pulley
 
 	double offset_;
 	double roll_def_, pitch_def_, yaw_def_;

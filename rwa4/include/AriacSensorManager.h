@@ -72,6 +72,7 @@ public:
     void qc_2_callback(const osrf_gear::LogicalCameraImage::ConstPtr &);
 
     void setDesiredParts(); // Parts that we want to pick up
+	bool checkFaultyArmOne(std::string frameName, const geometry_msgs::Pose& pose); // Check if the picked part is faulty or not
 
     // Getter: PartList
 	std::deque<std::pair<std::string, std::string>> get_part_list(){
