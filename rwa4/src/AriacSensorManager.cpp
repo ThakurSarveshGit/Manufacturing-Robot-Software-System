@@ -222,6 +222,16 @@ void AriacSensorManager::bb_2_callback(const osrf_gear::Proximity::ConstPtr &msg
 			auto tempPose = part_world_pose; // todo: remove this intermediate pose; Makes code slow
 			tempPose.position.z = part_world_pose.position.z + 0.5;
 			bool isFaulty = checkFaultyArmOne(part_frame_name, tempPose);
+			
+
+
+
+
+
+
+
+
+
 			// todo: If the arm was successful in picking up the arm, decide what to do with that part.
 			// if (if_pick){
 			// 	desired_parts.erase(element_itr);

@@ -194,7 +194,7 @@ void RobotController::SendRobotTo(std::map<std::string, double> desire_joint_sta
 void RobotController::GripperToggle(const bool& state){
 	gripper_service_.request.enable = state;
 	gripper_client_.call(gripper_service_);
-	ros::Duration(0.5).sleep();
+	ros::Duration(1).sleep();
 
 	if (gripper_service_.response.success)
 		ROS_INFO_STREAM("[RobotController]:[GripperToggle]: Gripper activated");
@@ -264,7 +264,7 @@ bool RobotController::PickPart(geometry_msgs::Pose& part_pose){
     // Creating Waypoints
     part_pose.position.z = part_pose.position.z + offset_; // Go above that part
     auto temp_pose_1 = part_pose;
-    temp_pose_1.position.z += 0.15; // Again add an offset above it; create a waypoint
+    temp_pose_1.position.z += 0.13; // Again add an offset above it; create a waypoint
 
     // todo: Make a conditional block to increment/reduce temp_pose_1 z value if the part
     // is a pulley. Use Gazebo Pose info for pulley and other parts to determine this.
@@ -283,7 +283,7 @@ bool RobotController::PickPart(geometry_msgs::Pose& part_pose){
     this->GoToTarget({part_pose, temp_pose_1}); // Come up.
     ros::spinOnce();
 
-    // Step 4
+    // Thats it, RobotController::PickPart() function is complete.
 
     return gripper_state_;
 }
