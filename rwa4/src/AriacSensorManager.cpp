@@ -25,6 +25,42 @@ AriacSensorManager::AriacSensorManager():
 
 	qc_1_redFlag = false;
 	qc_2_redFlag = false;
+
+	// Initializing various Intermediate poses
+    arm2_check_qc_pose["linear_arm_actuator_joint"] = -1.1;
+    arm2_check_qc_pose["shoulder_pan_joint"] = 4.6;
+    arm2_check_qc_pose["elbow_joint"] = 0;
+    arm2_check_qc_pose["shoulder_lift_joint"] = 0;
+    arm2_check_qc_pose["wrist_1_joint"] = 3.14 * 3 / 2;
+    arm2_check_qc_pose["wrist_2_joint"] = 3.14/2;
+
+    go_transition_pose["linear_arm_actuator_joint"] = -0.56;
+    go_transition_pose["shoulder_pan_joint"] = 3.14;
+    go_transition_pose["shoulder_lift_joint"] = -3.14/2;
+    go_transition_pose["elbow_joint"] = 3.14/2;
+    go_transition_pose["wrist_1_joint"] = 3.14 * 3 / 2;
+    go_transition_pose["wrist_2_joint"] = 3.14/2;
+
+    back_transition_pose["linear_arm_actuator_joint"] = -0.56;
+    back_transition_pose["shoulder_pan_joint"] = 3.14;
+    back_transition_pose["shoulder_lift_joint"] = -3.14/2;
+    back_transition_pose["elbow_joint"] = 3.14/2;
+    back_transition_pose["wrist_1_joint"] = -1.5;
+    back_transition_pose["wrist_2_joint"] = -3.14/2;
+
+    arm1_bin_pose["linear_arm_actuator_joint"] = 0.28;
+    arm1_bin_pose["shoulder_pan_joint"] = 2.13;
+    arm1_bin_pose["shoulder_lift_joint"] = -0.8;
+    arm1_bin_pose["elbow_joint"] = 1.6;
+    arm1_bin_pose["wrist_1_joint"] = 3.9;
+    arm1_bin_pose["wrist_2_joint"] = -1.57;
+
+    arm1_check_qc_pose["linear_arm_actuator_joint"] = 1.18;
+    arm1_check_qc_pose["shoulder_pan_joint"] = 1.44;
+    arm1_check_qc_pose["elbow_joint"] = 1.28;
+    arm1_check_qc_pose["shoulder_lift_joint"] = -0.5;
+    arm1_check_qc_pose["wrist_1_joint"] = 3.94;
+    arm1_check_qc_pose["wrist_2_joint"] = 1.57;
 }
 
 // Deconstructor
@@ -55,12 +91,32 @@ void AriacSensorManager::setDesiredParts(){
 		for (const auto &product:products)
 			desired_parts.insert(product.type);
 	}
-	ROS_INFO_STREAM("[ASM]:[setDesiredParts]: Current Desired Parts are:\n");
+	ROS_INFO_STREAM("[ASM]:[setDesiredParts]: Current Desired Parts are:");
 	for (const auto &part:desired_parts)
-		std::cout << part << std::endl;
+		std::cout << "\t\t\t" << part << std::endl;
 
 	if (!order_id.empty())
 		++order_number; // Everytime order_callback() is called; this will get incremented
+
+    // Call DesiredPartsLocation() Function: Set the location of these parts in a variable
+    DesiredPartsLocation();
+}
+
+void AriacSensorManager::DesiredPartsLocation(){
+    /*
+     * Set the location of the desired parts
+     */
+
+    // Step 1: Access the desired parts
+    auto currentDesiredParts = desired_parts;
+
+    for (auto i:currentDesiredParts)
+        ROS_INFO_STREAM("[ASM]:[DesiredPartsLocation]: Part Name: " << i);
+
+    // Step 2: Check whether the part is available on any bins
+
+
+    // Step 3: Set the location of the part.
 }
 
 // -- Logical Camera on the Conveyer Belt Callback Function; Subsciber callback for: lc_belt_sub initialized inside bb_1_callback
@@ -208,40 +264,31 @@ void AriacSensorManager::bb_2_callback(const osrf_gear::Proximity::ConstPtr &msg
 
 	if (msg->object_detected){
 		ROS_INFO_STREAM("[ASM]:[bb_2_callback]: BB2 Triggered. Part: " << part_list.front().first);
+
 		auto element_itr = desired_parts.find(part_list.front().first);
-		if (element_itr != desired_parts.end()){// If element in Desired Part List
+
+		// Pick up the desired Part ; Check for its quality and place it at the right place
+		if (element_itr != desired_parts.end()){
+
+			// Step 1: Check the world pose of the port
 			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Pick this part!");
 			auto part_world_pose = part_pose_list[part_list.front().second];
-			std::string part_frame_name = part_list.front().second;
-			// ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Desired part frame name: \n" << part_frame_name);
+			std::string part_frame_name = part_list.front().second;// Get the frame name of the part; todo: use to check which parts were faulty
 			
-			// If arm1 was successful in picking up the element, remove it from the desired parts set
-			bool if_pick = arm1.PickPart(part_world_pose); // PickPart picks up the 
-			
-			// 	// -- Check for quality of the product
+			// Step 2: Try to pick up the part
+			bool if_pick = arm1.PickPart(part_world_pose); // PickPart picks up the part and waits and 'temp_pose' above it
+
+			// Step 3: Check for the quality of the part; Since this [bb_2_callback] initiates arm1 so check at QC1
 			auto tempPose = part_world_pose; // todo: remove this intermediate pose; Makes code slow
-			tempPose.position.z = part_world_pose.position.z + 0.5;
+			tempPose.position.z = part_world_pose.position.z + 0.13; // 'tempPose' -> pose the arm is at currently after pick up.
 			bool isFaulty = checkFaultyArmOne(part_frame_name, tempPose);
-			
 
+			/* After Quality is checked the arm is just below the QC*/
 
-
-
-
-
-
-
-
-			// todo: If the arm was successful in picking up the arm, decide what to do with that part.
-			// if (if_pick){
-			// 	desired_parts.erase(element_itr);
-			// 	// ROS_INFO_STREAM("[ASM]:[bb_2_callback]: part was picked by: " << arm1.arm_name);
-				
-			// 	// -- Check for quality of the product
-			// 	auto tempPose = part_world_pose; // todo: remove this intermediate pose; Makes code slow
-			// 	tempPose.position.z = part_world_pose.position.z + 3;
-			// 	bool isFaulty = checkFaultyArmOne(part_frame_name, tempPose);
-			// }
+			// Step 4: If not faulty, place it on the Bin 1
+			if (!isFaulty){
+				// Drop the part on the kit tray!
+			}
 		}
 		else
 			ROS_INFO_STREAM("[ASM]:[bb_2_callback]: Let this part go! ");
@@ -249,25 +296,31 @@ void AriacSensorManager::bb_2_callback(const osrf_gear::Proximity::ConstPtr &msg
 	}
 }
 
-// Arm 1 check faulty: This is called by bb_2_callback()
+// Arm 1 check faulty: This is called inside bb_2_callback()
 bool AriacSensorManager::checkFaultyArmOne(std::string frameName, const geometry_msgs::Pose& pose){
 
-	/* frameName: name of the part in hand
-	 * We have accesss to the frame name of the component picked up by arm
-	 * We move from arm1's current position to Quality Control sensor 1.
+	/* @arg frameName: name of the part in hand
+	 * @arg pose: current pose of that part(It's in the hand of the manipulator)
+	 * Step 1: We move from arm1's current position to Quality Control sensor 1.
+	 * Step 2: We hear for quality control sensor output
+	 * @return bool Step 3: Return the status received.
 	 */
 	
 	ros::AsyncSpinner spinner(0);
 	spinner.start();
-	
-	ROS_INFO_STREAM("[RobotController]:[checkFaulty]: frame Name: " << frameName);
+	ROS_INFO_STREAM("[RobotController]:[checkFaultyArmOne]: part being tested: " << frameName);
 
 	// Step 1: Move the arm from the belt to the QC1
-	arm1.GoToTarget(pose);
+	arm1.SendRobotTo(go_transition_pose);
+	ros::Duration(0.2).sleep();
+	arm1.SendRobotTo(arm1_check_qc_pose);
+	ros::Duration(0.2).sleep();
 
-	// 
+	// Step 2: Check for the quality of the part
+	if (!qc_1_redFlag)
+	    ROS_INFO("[ASM]:[checkFaultyArmOne]: Part is good!");
+    else
+        ROS_INFO("[ASM]:[checkFaultyArmOne]: FAULTY PART");
 
-
-	// Move from current belt pose to that under QC
-	return false;
+	return qc_1_redFlag;
 }

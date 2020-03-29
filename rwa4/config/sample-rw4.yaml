@@ -43,6 +43,10 @@ models_over_bins:
         num_models_x: 2
         num_models_y: 3
 
+# faulty_products:
+#   - gear_part_1
+#   - gear_part_3
+
 belt_models:
   piston_rod_part:
     1.0:

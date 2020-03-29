@@ -1,0 +1,8 @@
+prefix=/home/marsar/catkin_ws/src/rwa4/cmake-build-debug/devel
+
+Name: rwa4
+Description: Description of rwa4
+Version: 0.1.2
+Cflags: -I/home/marsar/catkin_ws/src/rwa4/include
+Libs: -L${prefix}/lib 
+Requires: geometry_msgs moveit_ros_planning_interface osrf_gear roscpp sensor_msgs std_msgs std_srvs trajectory_msgs

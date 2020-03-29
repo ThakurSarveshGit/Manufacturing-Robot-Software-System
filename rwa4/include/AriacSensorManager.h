@@ -56,9 +56,20 @@ private:
 	std::deque<std::pair<std::string, std::string>> part_list; // Queue of key-Value pair of part name & its camera frame name
 	std::unordered_map<std::string, unsigned int> part_counter; // No. of times a part has moved on the conveyer belt before
 	std::multiset<std::string> desired_parts; // Set of parts that go inside the kit
+	std::
 
 	RobotController arm1; // arm1 object of class RobotController for accessing UR10 Arm1 
-	RobotController arm2; // arm2 object of class RobotController for accessing UR10 Arm2 
+	RobotController arm2; // arm2 object of class RobotController for accessing UR10 Arm2
+
+	// Intermediate Poses
+	std::map<std::string, double> arm1_check_qc_pose;
+	std::map<std::string, double> arm2_check_qc_pose;
+
+	std::map<std::string, double> arm1_bin_pose;
+	
+	std::map<std::string, double> go_transition_pose;
+	std::map<std::string, double> back_transition_pose;
+
 
 public:
     AriacSensorManager();
@@ -72,6 +83,7 @@ public:
     void qc_2_callback(const osrf_gear::LogicalCameraImage::ConstPtr &);
 
     void setDesiredParts(); // Parts that we want to pick up
+    void DesiredPartsLocation(); // stores the location of the desired parts as either conveyer belt or bin;
 	bool checkFaultyArmOne(std::string frameName, const geometry_msgs::Pose& pose); // Check if the picked part is faulty or not
 
     // Getter: PartList

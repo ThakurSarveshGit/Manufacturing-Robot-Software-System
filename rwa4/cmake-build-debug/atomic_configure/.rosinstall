@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/marsar/catkin_ws/src/rwa4/cmake-build-debug/devel/setup.sh
