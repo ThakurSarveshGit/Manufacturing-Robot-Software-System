@@ -1,6 +1,6 @@
 # Manufacturing-robot-software-system
 
-###Building a manufacturing robot Software system
+### Building a manufacturing robot Software system
   Instructor: Prof. Zeid Kootbally and Prof. Craig Schenloff
 
 #### Build a complete kit
