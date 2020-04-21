@@ -165,10 +165,8 @@ public:
 //    bool PickAndPlace(const std::pair<std::string, geometry_msgs::Pose>, int agv_id, RobotController& arm);
     bool PickAndPlace(const std::pair<std::string, geometry_msgs::Pose> product_type_pose,
                                           int agv_id, RobotController& arm);
+    bool FlipPart(RobotController* this_arm, RobotController* that_arm, geometry_msgs::Pose railDropPickPose); // Flip a Part
 
-//    void grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr&);
-//    void lc_agv_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr &);
-//    void grab_gear();
 
     bool init_, everything_ready;
 };

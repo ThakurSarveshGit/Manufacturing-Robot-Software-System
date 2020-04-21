@@ -35,6 +35,26 @@ RobotController::RobotController(std::string arm_id) :
     home_joint_pose_1["wrist_2_joint"] = -1.55;
     home_joint_pose_1["wrist_3_joint"] = 0;
 
+    // -------------- Flipping Poses -------------------//
+    RailRight["elbow_joint"] = 1.63;
+    RailRight["linear_arm_actuator_joint"] = 0.26;
+    RailRight["shoulder_lift_joint"] = -1.63;
+    RailRight["shoulder_pan_joint"] = 1.63;
+    RailRight["wrist_1_joint"] = 3.14;
+    RailRight["wrist_2_joint"] = -1.63;
+    RailRight["wrist_3_joint"] = 0;
+
+
+    RailLeft["elbow_joint"] = -1.50;
+    RailLeft["linear_arm_actuator_joint"] = -0.20;
+    RailLeft["shoulder_lift_joint"] = -1.63;
+    RailLeft["shoulder_pan_joint"] = 1.50;
+    RailLeft["wrist_1_joint"] = 0.00;
+    RailLeft["wrist_2_joint"] = 1.64;
+    RailLeft["wrist_3_joint"] = 0.00;
+
+    // -------------------------------------------------//
+
     ////////////modified
     //--These are joint positions used for the home position
     // home_joint_pose_ = {0.0, 3.1, -1.1, 1.9, 3.9, 4.7, 0};

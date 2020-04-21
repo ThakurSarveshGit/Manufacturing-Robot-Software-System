@@ -42,15 +42,22 @@ public:
     void GripperStateCheck(geometry_msgs::Pose pose);
     bool PickPart(const geometry_msgs::Pose& part_pose);
     void RobotGoHome();
-    double getRotationCompensate(const geometry_msgs::Pose&, 
+    double getRotationCompensate(const geometry_msgs::Pose&,
         const geometry_msgs::Pose&);
     bool DropPart2(geometry_msgs::Pose);
     bool PickPart2(const geometry_msgs::Pose&, const geometry_msgs::Pose&);
+
     std::map<std::string, double> home_joint_pose_1;
     std::map<std::string, double> home_joint_pose_2;
-
     std::map<std::string, double> check_qc_pose;
+
+    std::map<std::string, double> RailLeft; // Flipping: Default side Arm 1 Position
+    std::map<std::string, double> RailRight; // Flipping: Default side Arm 2 Position
+
+
     geometry_msgs::Pose throw_away_pose;
+    //////////modified
+    std::string id;
 
 private:
     // subscriber of other arm's linear actuactor pose
@@ -99,8 +106,6 @@ private:
     int counter_;
     bool gripper_state_, drop_flag_;
 
-    //////////modified
-    std::string id;
 
     double y_comp;
 };

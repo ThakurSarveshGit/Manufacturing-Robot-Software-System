@@ -571,12 +571,87 @@ void AriacSensorManager::CorrectPose(geometry_msgs::Pose current_pose, geometry_
 //    }
 //}
 
+bool AriacSensorManager::FlipPart(RobotController* this_arm, RobotController* that_arm, geometry_msgs::Pose railDropPickPose){
+    ROS_INFO_STREAM("[ASM]:[FlipPart]: Function Called");
+    bool result{false};
+    auto railLeft = this_arm->RailLeft;
+    auto railRight = this_arm->RailRight;
+
+    //======== If arm2 has the part in hand initially i.e. this_arm = 2; that_arm = 1; =====//
+    if (this_arm->id == "arm1") {
+        // Send arm1 to transition pose.
+        this_arm->SendRobotTo(railLeft);
+        ROS_INFO_STREAM("[ASM]:[FlipPart]: Arm1 Transition Pose reached");
+
+        // Send arm2 to transition pose.
+        that_arm->SendRobotTo(railRight);
+        ROS_INFO_STREAM("[ASM]:[FlipPart]: Arm2 Transition Pose reached");
+
+        // Exchange the part.
+        that_arm->GripperToggle(true);
+        this_arm->GripperToggle(false);
+
+        // Arm1 moves away to give space for dropping operation
+
+
+        // Arm2 drops the part.
+
+        // Arm2 moves away.
+
+        // Arm1 picks up the part.
+    }
+
+    //======== If arm2 has the part in hand initially i.e. this_arm = 2; that_arm = 1; =====//
+    if (this_arm->id == "arm2") {
+
+        // Send arm2 to transition pose.
+        this_arm->SendRobotTo(railRight);
+        ROS_INFO_STREAM("[ASM]:[FlipPart]: Arm1 Transition Pose reached");
+
+        // Send arm1 to transition pose.
+        that_arm->SendRobotTo(railLeft);
+        ROS_INFO_STREAM("[ASM]:[FlipPart]: Arm2 Transition Pose reached");
+
+        // Exchange the part.
+        that_arm->GripperToggle(true);
+        this_arm->GripperToggle(false);
+        ros::Duration(1).sleep();
+
+        // Arm2 moves away to give space for dropping operation
+        this_arm->SendRobotTo("linear_arm_actuator_joint",0.00);
+
+        // Arm1 drops the part.
+        railDropPickPose.position.z = 0.9 + 0.2;
+        that_arm->GoToTarget1(railDropPickPose);
+        that_arm->GripperToggle(false);
+        ROS_INFO_STREAM("[ASM][FlipPart]: Arm1 dropped the part.");
+        ros::Duration(1).sleep();
+
+        // Arm1 moves away.
+        that_arm->SendRobotTo("linear_arm_actuator_joint",1.00);
+        ros::Duration(1).sleep();
+        ROS_INFO_STREAM("[ASM][FlipPart]: Arm 1 moved away");
+
+        // Arm2 picks up the part.
+        ROS_INFO_STREAM("[ASM][FlipPart]: Now we can think of calling PickPart" << railDropPickPose);
+        this_arm->GoToTarget1(railDropPickPose);
+
+    }
+
+
+
+//    ROS_INFO_STREAM("[ASM]:[FlipPart]: This Arm: " << this_arm->id);
+//    ROS_INFO_STREAM("[ASM]:[FlipPart]: That Arm: " << that_arm->id);
+
+    return !result;
+}
 
 bool AriacSensorManager::PickAndPlace(const std::pair<std::string, geometry_msgs::Pose> product_type_pose,
-                                      int agv_id, RobotController& arm)
-{
+                                      int agv_id, RobotController& arm){
     if(init_){
+
         int unreachable = 0;
+
         if(agv_id == 1) {
             this_arm = &arm;
             that_arm = &arm2;
@@ -593,19 +668,29 @@ bool AriacSensorManager::PickAndPlace(const std::pair<std::string, geometry_msgs
         }
 
         std::string product_type = product_type_pose.first;
-        ROS_WARN_STREAM("[AriacSensorManager]:[PickAndPlace]:Product type >>>> " << product_type);
+        ROS_WARN_STREAM("[AriacSensorManager]:[PickAndPlace]:Product type: " << product_type);
         std::string product_frame = this->GetProductFrame(product_type);
 
-        ROS_WARN_STREAM("Product frame >>>> " << product_frame);
-        auto part_pose = GetPartPose("/world", product_frame);
+        ROS_WARN_STREAM("[AriacSensorManager]:[PickAndPlace]:Product frame: " << product_frame);
+        auto part_pose = GetPartPose("/world", product_frame); // Converting from kit frame to world frame
+        if (product_type == "pulley_part") part_pose.position.z += 0.08; // Add offset if its a pulley -- Not calibrated
 
-        if (product_type == "pulley_part")
-            part_pose.position.z += 0.08;
+        // above_rail_center: To place the desired part on the rail
+        geometry_msgs::Pose above_rail_center;
+        above_rail_center.position.x = 0.3;
+        above_rail_center.position.y = 0;
+        above_rail_center.position.z = 0.9 + 0.1;
+        above_rail_center.orientation.x = part_pose.orientation.x;
+        above_rail_center.orientation.y = part_pose.orientation.y;
+        above_rail_center.orientation.z = part_pose.orientation.z;
+        above_rail_center.orientation.w = part_pose.orientation.w;
 
+        // If the part is unreachable for the current Arm, assign other arm to pick it
         if (product_frame.find("lc_bin_" + std::to_string(unreachable)) != -1) {
-            ROS_INFO_STREAM("Current process part is in unreachable bin!");
+            ROS_INFO_STREAM("Current process part is in an unreachable bin!");
+
+            // Other arm picks the part.
             that_arm->SendRobotTo(that_arm->home_joint_pose_1);
-            // that_arm->RobotGoHome();
             that_arm->SendRobotTo(that_arm->home_joint_pose_2);
             bool failed_pick = that_arm->PickPart(part_pose);
             ros::Duration(0.5).sleep();
@@ -614,30 +699,28 @@ bool AriacSensorManager::PickAndPlace(const std::pair<std::string, geometry_msgs
                 // auto part_pose = GetPartPose("/world", product_frame);
                 failed_pick = that_arm->PickPart(part_pose);
             }
-
             ros::Duration(0.5).sleep();
-            // that_arm->RobotGoHome();
-            that_arm->SendRobotTo(that_arm->home_joint_pose_2);
+
+            that_arm->SendRobotTo(that_arm->home_joint_pose_2); // Other arm goes to a home pose
             ros::Duration(1).sleep();
 
-            // place the desired part on the rail
-            geometry_msgs::Pose above_rail_center;
-            above_rail_center.position.x = 0.3;
-            // above_rail_center.position.y = -0.383;
-            above_rail_center.position.y = 0;
-            above_rail_center.position.z = 0.9 + 0.1;
-            above_rail_center.orientation.x = part_pose.orientation.x;
-            above_rail_center.orientation.y = part_pose.orientation.y;
-            above_rail_center.orientation.z = part_pose.orientation.z;
-            above_rail_center.orientation.w = part_pose.orientation.w;
+            // --------- Flip part if needed ------------ //
+            ROS_WARN_STREAM("[ASM]:[PickAndPlace]: Flipping Begin.");
 
-            ROS_INFO_STREAM("[AriacSensorManager]:[PickAndPlace]: Drop Pose : " << above_rail_center);
-            // that_arm->RobotGoHome();
+            this->FlipPart(this_arm, that_arm, above_rail_center);
+
+
+            ROS_WARN_STREAM("[ASM]:[PickAndPlace]: Flipping Successful.");
+            // --------- Flip part completed ------------ //
+
+            // After flipping completed, drop the part.
+            ROS_INFO_STREAM("[AriacSensorManager]:[PickAndPlace]: Dropping Part on rail, pose : " << above_rail_center);
             if (agv_id == 1)
                 that_arm->SendRobotTo("shoulder_pan_joint", 1.32);
             else
                 that_arm->SendRobotTo("shoulder_pan_joint", 4.40);
             auto result = that_arm->DropPart(above_rail_center);
+
             // that_arm->RobotGoHome();
             // ros::Duration(1.5).sleep();
             that_arm->SendRobotTo(that_arm->home_joint_pose_2);
@@ -652,27 +735,31 @@ bool AriacSensorManager::PickAndPlace(const std::pair<std::string, geometry_msgs
                 that_arm->SendRobotTo("shoulder_pan_joint", 1.32);
         }
 
+        // =========  If the part is in an reachable bin. ============= //
+
+        // Pick the part
         bool failed_pick = this_arm->PickPart(part_pose);
         ros::Duration(0.5).sleep();
-
         while (!failed_pick) {
-            // auto part_pose = GetPartPose("/world", product_frame);
             failed_pick = this_arm->PickPart(part_pose);
         }
+        ros::Duration(0.5).sleep();ROS_INFO_STREAM("[AriacSensorManager]:[PickAndPlace]:Part successfully picked.");
 
-        ros::Duration(0.5).sleep();
-        ROS_WARN_STREAM("[AriacSensorManager]:[PickAndPlace]:Checking-------- >>>> " );
+        ROS_WARN_STREAM("[AriacSensorManager]:[PickAndPlace]:Checking " );
         this_arm->SendRobotTo(this_arm->home_joint_pose_2);
         this_arm->RobotGoHome();
         ros::Duration(1).sleep();
 
-        // Function to get the drop pose in world coordinates
+        // --------- Flip part if needed ------------ //
+        ROS_WARN_STREAM("[ASM]:[PickAndPlace]: Flipping Begin.");
+        this->FlipPart(this_arm, that_arm, above_rail_center);
+
+        ROS_WARN_STREAM("[ASM]:[PickAndPlace]: Flipping Successful.");
+        // --------- Flip part completed ------------ //
+
         geometry_msgs::Pose drop_pose = kitToWorld(product_type_pose.second, agv_id);
         ROS_INFO_STREAM("[AriacSensorManager]:[PickAndPlace]: Drop Pose : " << drop_pose);
         drop_pose.position.z += 0.05;
-        // if(agv_id == 1){
-        //     this_arm->SendRobotTo("shoulder_pan_joint", 2.39);
-        // }
         auto result = this_arm->DropPart(drop_pose);
         ros::Duration(1.5).sleep();
         this_arm->RobotGoHome();
@@ -725,7 +812,7 @@ void AriacSensorManager::ExecuteOrder() {
             auto agv = shipment.agv_id.back();//--this returns a char
             //-- if agv is any then we use AGV1, else we convert agv id to int
             //--agv-'0' converts '1' to 1 and '2' to 2
-            int agv_id = (shipment.agv_id == "any") ? 1 : agv - '0';
+            int agv_id = (shipment.agv_id == "any") ? 2 : agv - '0';
 
             auto products = shipment.products;
             ROS_INFO_STREAM("Order ID: " << order_id);
