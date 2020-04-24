@@ -46,7 +46,7 @@ RobotController::RobotController(std::string arm_id) :
 
 
     RailLeft["elbow_joint"] = -1.50;
-    RailLeft["linear_arm_actuator_joint"] = -0.20;
+    RailLeft["linear_arm_actuator_joint"] = -0.195;
     RailLeft["shoulder_lift_joint"] = -1.63;
     RailLeft["shoulder_pan_joint"] = 1.50;
     RailLeft["wrist_1_joint"] = 0.00;
@@ -82,6 +82,14 @@ RobotController::RobotController(std::string arm_id) :
 
         check_qc_pose = home_joint_pose_1;
 
+        rail_pick_trans_pose["linear_arm_actuator_joint"] = 0.42;
+        rail_pick_trans_pose["shoulder_pan_joint"] = -1.57;
+        rail_pick_trans_pose["shoulder_lift_joint"] = -1.07;
+        rail_pick_trans_pose["elbow_joint"] = 1.75;
+        rail_pick_trans_pose["wrist_1_joint"] = 4.02;
+        rail_pick_trans_pose["wrist_2_joint"] = -1.57;
+        rail_pick_trans_pose["wrist_3_joint"] = 0;
+
         throw_away_pose.position.x = 0.2-0.4;
         throw_away_pose.position.y = 3.0 ;
         throw_away_pose.position.z = 0.85 + 0.2;
@@ -114,6 +122,14 @@ RobotController::RobotController(std::string arm_id) :
         this->SendRobotTo(home_joint_pose_1);
 
         check_qc_pose = home_joint_pose_1;
+
+        rail_pick_trans_pose["linear_arm_actuator_joint"] = -0.42;
+        rail_pick_trans_pose["shoulder_pan_joint"] = 1.57;
+        rail_pick_trans_pose["shoulder_lift_joint"] = -1.07;
+        rail_pick_trans_pose["elbow_joint"] = 1.75;
+        rail_pick_trans_pose["wrist_1_joint"] = 4.02;
+        rail_pick_trans_pose["wrist_2_joint"] = -1.57;
+        rail_pick_trans_pose["wrist_3_joint"] = 0;
 //        check_qc_pose["linear_arm_actuator_joint"] = -0.87;
 //        check_qc_pose["shoulder_pan_joint"] = 4.6;
 //        check_qc_pose["elbow_joint"] = 0;
@@ -134,7 +150,6 @@ RobotController::RobotController(std::string arm_id) :
         offset_ = 0.0275;
     }
 
-
     //-- offset used for picking up parts
     //-- For the pulley_part, the offset is different since the pulley is thicker
 
@@ -146,12 +161,10 @@ RobotController::RobotController(std::string arm_id) :
     // SendRobotTo();
     // SendRobotTo(home_joint_pose_0);
 
-
     robot_tf_listener_.waitForTransform(arm_id + "_linear_arm_actuator", arm_id + "_ee_link",
         ros::Time(0), ros::Duration(10));
     robot_tf_listener_.lookupTransform("/" + arm_id + "_linear_arm_actuator", 
         "/" + arm_id + "_ee_link", ros::Time(0), robot_tf_transform_);
-
 
     fixed_orientation_.x = robot_tf_transform_.getRotation().x();
     fixed_orientation_.y = robot_tf_transform_.getRotation().y();
@@ -161,12 +174,10 @@ RobotController::RobotController(std::string arm_id) :
     tf::quaternionMsgToTF(fixed_orientation_,q);
     tf::Matrix3x3(q).getRPY(roll_def_,pitch_def_,yaw_def_);
 
-
     end_position_ = home_joint_pose_1;
     //  end_position_[0] = 2.2;
     //  end_position_[1] = 4.5;
     //  end_position_[2] = 1.2;
-
 
     robot_tf_listener_.waitForTransform("world", arm_id + "_ee_link", ros::Time(0),
                                             ros::Duration(10));
@@ -197,7 +208,6 @@ RobotController::RobotController(std::string arm_id) :
 }
 
 RobotController::~RobotController() {}
-
 
 bool RobotController::Planner() {
     // ROS_INFO_STREAM("Planning started...");
@@ -251,14 +261,11 @@ void RobotController::GoToTarget(
         i.orientation.w = fixed_orientation_.w;
         waypoints.emplace_back(i);
     }
-    
     moveit_msgs::RobotTrajectory traj;
     auto fraction =
             robot_move_group_.computeCartesianPath(waypoints, 0.01, 0.0, traj, true);
-
     // ROS_WARN_STREAM("Fraction: " << fraction * 100);
     // ros::Duration(5.0).sleep();
-
     robot_planner_.trajectory_ = traj;
     //if (fraction >= 0.3) {
     robot_move_group_.execute(robot_planner_);
@@ -303,7 +310,6 @@ void RobotController::SendRobotTo(std::string joint_name, double joint_value) {
             << cur_joint_status[constJointNameRef[i]]);
     }
     this->SendRobotTo(cur_joint_status);
-
     // robot_move_group_.setJointValueTarget(joint_name, joint_value);
     // // this->execute();
     // ros::AsyncSpinner armSpinner(0);
@@ -388,16 +394,13 @@ double RobotController::getRotationCompensate (const geometry_msgs::Pose& part_p
     return (drop_Y - part_Y);
 }
 
-
 bool RobotController::DropPart2(geometry_msgs::Pose part_pose) {
     // counter_++;
-
     drop_flag_ = true; // Dropping process in progress
     ros::spinOnce();
     ROS_INFO_STREAM("[RobotController]:[DropPart]: Dropping Part...");
     ROS_INFO_STREAM("[RobotController]:[DropPart]: Before dropping Gripper State : " << gripper_state_);
 //    ROS_INFO_STREAM("[RobotController]:[DropPart]: Before dropping Activated or not? " << int(gripper_service_.response.success));
-
     if (gripper_state_){//--while the part is still attached to the gripper
         auto temp_pose = part_pose;
         part_pose.position.z += offset_;
@@ -408,7 +411,6 @@ bool RobotController::DropPart2(geometry_msgs::Pose part_pose) {
         this->SendRobotTo("wrist_2_joint", - y_comp);
         this->GripperToggle(false);
     }
-
     drop_flag_ = false; // Dropping process completed! Dropping successful
     ros::Duration(0.5).sleep(); // I hope in this period gripper_state_ gets updated.
 
@@ -418,11 +420,8 @@ bool RobotController::DropPart2(geometry_msgs::Pose part_pose) {
 }
 
 
-
-
 bool RobotController::PickPart(const geometry_msgs::Pose& part_pose) {
     // stand_by > contact > actual
-
     auto contact_pose = part_pose;
     contact_pose.position.z = part_pose.position.z + offset_;
     auto stand_by_pose = part_pose;
@@ -439,7 +438,6 @@ bool RobotController::PickPart(const geometry_msgs::Pose& part_pose) {
         ros::spinOnce();
     }
     // ROS_INFO_STREAM("Get things");
-
     // ROS_INFO_STREAM(id + "Going to waypoint...");
     this->GoToTarget1(stand_by_pose);
     return gripper_state_;
@@ -448,7 +446,6 @@ bool RobotController::PickPart(const geometry_msgs::Pose& part_pose) {
 bool RobotController::PickPart2(const geometry_msgs::Pose& part_pose, 
     const geometry_msgs::Pose& drop_pose) {
     // stand_by > contact > actual
-
     auto contact_pose = part_pose;
     contact_pose.position.z = part_pose.position.z + offset_;
     auto stand_by_pose = part_pose;
@@ -468,7 +465,6 @@ bool RobotController::PickPart2(const geometry_msgs::Pose& part_pose,
         }
     }
     // ROS_INFO_STREAM("Get things");
-
     // ROS_INFO_STREAM(id + "Going to waypoint...");
     this->GoToTarget1(stand_by_pose);
     return gripper_state_;
