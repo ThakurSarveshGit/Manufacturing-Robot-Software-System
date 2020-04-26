@@ -51,8 +51,6 @@ private:
     // subscriber of other arm's linear actuactor pose
     ros::Subscriber line_act_pose_sub;
     ros::Publisher line_act_pose_pub;
-    
-
     ros::NodeHandle robot_controller_nh_;
     moveit::planning_interface::MoveGroupInterface::Options robot_controller_options;
 
@@ -67,9 +65,7 @@ private:
 
     // tf2_ros::Buffer robot_tf_buffer_;
     // tf2_ros::Buffer agv_tf_buffer_;
-
     geometry_msgs::Pose target_pose_;
-
     moveit::planning_interface::MoveGroupInterface robot_move_group_;
     moveit::planning_interface::MoveGroupInterface::Plan robot_planner_;
 
@@ -94,10 +90,8 @@ private:
     tf::Quaternion q;
     int counter_;
     bool gripper_state_, drop_flag_;
-
     //////////modified
     std::string id;
-
     double y_comp;
 };
 #endif //SRC_ROBOT_CONTROLLER_H

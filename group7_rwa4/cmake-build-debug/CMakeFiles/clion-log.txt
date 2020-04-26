@@ -1,4 +1,4 @@
-/snap/clion/107/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/marsar/catkin_ws/src/group7_rwa4
+/home/nakul/Downloads/clion-2019.3.4/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/nakul/ariac_ws/src/group7_rwa4
 -- The C compiler identification is GNU 7.5.0
 -- The CXX compiler identification is GNU 7.5.0
 -- Check for working C compiler: /usr/bin/cc
@@ -31,4 +31,4 @@ CMake Error at CMakeLists.txt:10 (find_package):
 
 
 -- Configuring incomplete, errors occurred!
-See also "/home/marsar/catkin_ws/src/group7_rwa4/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/home/nakul/ariac_ws/src/group7_rwa4/cmake-build-debug/CMakeFiles/CMakeOutput.log".

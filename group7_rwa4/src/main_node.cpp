@@ -51,7 +51,7 @@ int main(int argc, char ** argv) {
     ros::AsyncSpinner spinner(0);
 
     // MyCompetitionClass comp_class(main_nh);
-    AriacSensorManager sensor; // Classes initialized.
+    AriacSensorManager sensor;
 
     ROS_INFO_STREAM("Wait for competition start...");
     start_competition(main_nh);

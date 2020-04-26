@@ -1,3 +1,5 @@
+
+#include <tf2/LinearMath/Quaternion.h>
 #include "AriacSensorManager.h"
 using namespace std;
 
@@ -19,8 +21,8 @@ AriacSensorManager::AriacSensorManager() :
     lc_bin_1_sub = sensor_nh_.subscribe("/ariac/lc_bin_1", 10,
                                         & AriacSensorManager::lc_bin_1_callback, this);
 
-//    lc_agv_1_sub = sensor_nh_.subscribe("/ariac/lc_agv_1", 10,
-//                                         & AriacSensorManager::lc_agv_1_callback, this);
+    lc_agv_1_sub = sensor_nh_.subscribe("/ariac/lc_agv_1", 10,
+                                         & AriacSensorManager::lc_agv_1_callback, this);
     
     order_number = 0;
 
@@ -118,7 +120,6 @@ void AriacSensorManager::lc_gear_callback(const osrf_gear::LogicalCameraImage::C
         parts_to_pickup_belt.erase("gear_part");
     }
 
-
     ros::AsyncSpinner spinner(4);
     spinner.start();
 
@@ -132,7 +133,6 @@ void AriacSensorManager::lc_gear_callback(const osrf_gear::LogicalCameraImage::C
 void AriacSensorManager::gear_check(const osrf_gear::LogicalCameraImage::ConstPtr& image_msg){
     ros::AsyncSpinner spinner(4);
     spinner.start();
-
     ros::Duration timeout(0.2);
 
     size_t desired_gear_num = task["gear_part"]; // count number of gears needed
@@ -180,7 +180,6 @@ void AriacSensorManager::gear_check(const osrf_gear::LogicalCameraImage::ConstPt
                         if_pick_tray = arm2.PickPart(ee2_pose);
                     }
                     /// ---------checking mechanism --------------------
-
                     if (qc_2_redFlag) {
                         // if the one below the camera is a faulty one
                         ROS_WARN_STREAM("[gear_check]: QC 2 detected faulty part, ready to dispose....");
@@ -307,6 +306,36 @@ void AriacSensorManager::bb_2_callback(const osrf_gear::Proximity::ConstPtr & ms
     }
 }
 
+// void AriacSensorManager::pick_part_from_belt(pair<string, string> incoming_part){
+// //    ros::AsyncSpinner spinner(4);
+// //    spinner.start();
+//     // ROS_INFO_STREAM("[pick_part_from_belt]: Inside pick_part_from_belt");
+//     popped_incoming_part = incoming_part;
+//     auto part_pose = belt_part_map[incoming_part.second];
+
+//     bool if_pick = arm1.PickPart(part_pose);
+//     if (if_pick){
+//         qc_1_sub = sensor_nh_.subscribe("/ariac/quality_control_sensor_1", 1,
+//                                         & AriacSensorManager::qc_1_callback, this);
+//         arm1.SendRobotTo(arm1_check_qc_pose);
+//         qc_1_sub.shutdown();
+//         if (qc_1_redFlag) { // if the one below the camera is a faulty one
+//             ROS_INFO_STREAM("[pick_part_from_belt]: QC 1 detected bad shit, ready to dispose....");
+//             arm1_check_qc_pose["shoulder_pan_joint"] = 2.32;
+//             arm1.SendRobotTo(arm1_check_qc_pose);
+//             arm1.GripperToggle(false);
+//             // lc_bin_1_sub = sensor_nh_.subscribe("/ariac/lc_bin_1", 10,
+//             //     & AriacSensorManager::lc_bin_1_callback, this);
+//         }
+//         else { // if the one below the camera is a good one
+//             arm1.SendRobotTo(arm1_bin_pose);
+//             arm1.GripperToggle(false);
+//             --(task[incoming_part.first]);
+//         }
+//         arm1.RobotGoHome();
+//     }
+//     arm1_busy = false;
+// }
 
 void AriacSensorManager::pick_part_from_belt(pair<string, string> incoming_part){
     // ros::AsyncSpinner spinner(4);
@@ -324,41 +353,24 @@ void AriacSensorManager::pick_part_from_belt(pair<string, string> incoming_part)
         arm1.GripperToggle(false);
         ros::Duration timeout(0.2);
 
-//        geometry_msgs::TransformStamped transformStamped;
-//        transformStamped = tfBuffer.lookupTransform("world", "arm1_ee_link", ros::Time(0), timeout);
-//        geometry_msgs::Pose ee1_pose;
-//        ee1_pose.position.x = transformStamped.transform.translation.x;
-//        ee1_pose.position.y = transformStamped.transform.translation.y;
-//        ee1_pose.position.z = transformStamped.transform.translation.z;
-//        ee1_pose.position.z -= 0.15;
+        geometry_msgs::TransformStamped transformStamped;
+        transformStamped = tfBuffer.lookupTransform("world", "arm1_ee_link", ros::Time(0), timeout);
+        geometry_msgs::Pose ee1_pose;
+        ee1_pose.position.x = transformStamped.transform.translation.x;
+        ee1_pose.position.y = transformStamped.transform.translation.y;
+        ee1_pose.position.z = transformStamped.transform.translation.z;
+        ee1_pose.position.z -= 0.15;  
 
         arm1.SendRobotTo("shoulder_pan_joint", 1.6);
         ros::Duration(0.5).sleep();
         qc_1_sub.shutdown();
         arm1.SendRobotTo("shoulder_pan_joint", 1.44);
 
-
-
-        // ---- Changes to pick using Logical Camera Sensor ---- //
-        lc_agv_1_sub_new = sensor_nh_.subscribe("/ariac/lc_agv_1", 10, &AriacSensorManager::lc_agv_1_callback_new, this);
-        auto tempPartPoseOnKit = partPoseOnKitTray1;
-        ros::Duration(0.1).sleep();
-        lc_agv_1_sub_new.shutdown();
-
-        geometry_msgs::PoseStamped StampedPose_in, StampedPose_out;
-        StampedPose_in.header.frame_id = "kit_tray_1";
-        StampedPose_in.pose = tempPartPoseOnKit;
-        StampedPose_out = tfBuffer.transform(StampedPose_in, "world");
-        auto pickUpPartPose = StampedPose_out.pose;
-
-
-        bool if_pick_tray = arm1.PickPart(pickUpPartPose);
-
-
+        bool if_pick_tray = arm1.PickPart(ee1_pose);
         ROS_INFO_STREAM("qc_1_redFlag = " << qc_1_redFlag);
         while (!if_pick_tray) {
-//            ee1_pose.position.z -= 0.015;
-            if_pick_tray = arm1.PickPart(pickUpPartPose);
+            ee1_pose.position.z -= 0.015;
+            if_pick_tray = arm1.PickPart(ee1_pose);
         }
         /// ---------checking mechanism --------------------
 
@@ -445,24 +457,24 @@ void AriacSensorManager::grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr
                     // ROS_INFO_STREAM("Part pitch in kit_tray_frame = " << part_P);
                     // ROS_INFO_STREAM("Part yall in kit_tray_frame= " << part_Y);
 
-                    transformStamped = tfBuffer.lookupTransform("kit_tray_1", "arm1_ee_link", ros::Time(0),
-                                                               timeout);
-                    geometry_msgs::Pose ee_pose;
-                    ee_pose.orientation.x = transformStamped.transform.rotation.x;
-                    ee_pose.orientation.y = transformStamped.transform.rotation.y;
-                    ee_pose.orientation.z = transformStamped.transform.rotation.z;
-                    ee_pose.orientation.w = transformStamped.transform.rotation.w;
-
-                    double ee_R, ee_P, ee_Y;
-                    tf2::Quaternion quat_tf_ee;
-                    tf2::fromMsg(ee_pose.orientation, quat_tf_ee);
-                    tf2::Matrix3x3(quat_tf_ee).getRPY(ee_R, ee_P, ee_Y);
+//                    transformStamped = tfBuffer.lookupTransform("kit_tray_1", "arm1_ee_link", ros::Time(0),
+//                                                               timeout);
+//                    geometry_msgs::Pose ee_pose;
+//                    ee_pose.orientation.x = transformStamped.transform.rotation.x;
+//                    ee_pose.orientation.y = transformStamped.transform.rotation.y;
+//                    ee_pose.orientation.z = transformStamped.transform.rotation.z;
+//                    ee_pose.orientation.w = transformStamped.transform.rotation.w;
+//
+//                    double ee_R, ee_P, ee_Y;
+//                    tf2::Quaternion quat_tf_ee;
+//                    tf2::fromMsg(ee_pose.orientation, quat_tf_ee);
+//                    tf2::Matrix3x3(quat_tf_ee).getRPY(ee_R, ee_P, ee_Y);
 
                     // ROS_INFO_STREAM("EE roll in kit_tray_frame = " << ee_R);
                     // ROS_INFO_STREAM("EE pitch in kit_tray_frame = " << ee_P);
                     // ROS_INFO_STREAM("EE yall in kit_tray_frame= " << ee_Y);
 
-                    double part_ee_ang_diff = part_Y - ee_Y;
+                    //double part_ee_ang_diff = part_Y - ee_Y;
                     ///----------modification end ----------------------
                     arm1.SendRobotTo(arm1_bin_pose);
                     try {
@@ -474,8 +486,8 @@ void AriacSensorManager::grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr
                         StampedPose_out = tfBuffer.transform(StampedPose_in, "world");
                         auto drop_pose = StampedPose_out.pose;
                         drop_pose.position.z += 0.05;
-
-                        ///--------Get Deisred RPY from kit_tray
+                        ROS_INFO_STREAM("[grab_bin1()======= World frame drop pose***************************** ]:" << drop_pose);
+                        //--------Get Desired RPY from kit_tray
                         tf2::Quaternion quat_D;
                         tf2::fromMsg(drop_pose_.orientation, quat_D);
                         double d_R, d_P, d_Y;
@@ -483,10 +495,83 @@ void AriacSensorManager::grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr
 
                         arm1.GoToTarget1(drop_pose);
                         ros::Duration(0.5).sleep();
-                        double comp = d_Y -  part_ee_ang_diff;
-                        arm1.SendRobotTo("wrist_3_joint", comp);
-                        ros::Duration(1).sleep();
+                        //-----------------//
+                        geometry_msgs::PoseStamped StampedPose_in_curr, StampedPose_out_curr;
+                        StampedPose_in_curr.header.frame_id = "lc_agv_1_frame";
+                        StampedPose_in_curr.pose = qt_pose;
+                        StampedPose_out_curr = tfBuffer.transform(StampedPose_in_curr, "world");
+                        auto drop_pose_curr = StampedPose_out_curr.pose;
+
+                        tf2::Quaternion quat_D_curr;
+                        tf2::fromMsg(drop_pose_curr.orientation, quat_D_curr);
+                        double d_R_curr, d_P_curr, d_Y_curr;
+                        tf2::Matrix3x3(quat_D_curr).getRPY(d_R_curr, d_P_curr, d_Y_curr);
+                        ROS_INFO_STREAM("================ curr_yaw ============="<<d_Y_curr);   // -2.72
+
+                        //double comp = d_Y -  part_ee_ang_diff;
+                        //double diff_yaw = d_Y - d_Y_curr;
+                        //ROS_INFO_STREAM("================ ================================  diff   ========================== ============="<< diff_yaw);   // -2.76
+
+                        transformStamped = tfBuffer.lookupTransform("world", "arm1_ee_link", ros::Time(0),
+                                                                    timeout);
+                        geometry_msgs::Pose ee_pose;
+                        ee_pose.orientation.x = transformStamped.transform.rotation.x;
+                        ee_pose.orientation.y = transformStamped.transform.rotation.y;
+                        ee_pose.orientation.z = transformStamped.transform.rotation.z;
+                        ee_pose.orientation.w = transformStamped.transform.rotation.w;
+
+                        double ee_R, ee_P, ee_Y;
+                        tf2::Quaternion quat_tf_ee;
+                        tf2::fromMsg(ee_pose.orientation, quat_tf_ee);
+                        tf2::Matrix3x3(quat_tf_ee).getRPY(ee_R, ee_P, ee_Y);
+
+                        double eediff= d_Y_curr - ee_Y;
+
+                        double req = d_Y - eediff;
+
+                        ROS_INFO_STREAM("================  diff ============="<< eediff);
+
+                        //to edit for orientation
+                        tf2:: Quaternion myQuat;
+                        myQuat.setRPY(0,0,req);
+                        std::cout << "Checking..................................." << std::endl;
+                        ROS_INFO_STREAM("[grab_bin1()][inside function myQuat ============================= ]:" << *myQuat << *(myQuat+1) << *(myQuat+2) << *(myQuat+3));
+
+                        geometry_msgs::Pose tmp;
+                        tmp.orientation.x = *myQuat;
+                        tmp.orientation.y = *(myQuat+1);
+                        tmp.orientation.z = *(myQuat+2);
+                        tmp.orientation.w = *(myQuat+3);
+
+                        geometry_msgs::PoseStamped StampedPose_in1, StampedPose_out1;
+                        StampedPose_in1.header.frame_id = "world";
+                        StampedPose_in1.pose = tmp;
+                        StampedPose_out1 = tfBuffer.transform(StampedPose_in, "arm1_wrist_3_link");
+                        geometry_msgs::Pose poseKit = StampedPose_out1.pose;
+//
+                        tf2::Quaternion quat_tf1;
+                        tf2::fromMsg(poseKit.orientation, quat_tf1);
+                        double part_R1, part_P1, part_Y1;
+                        tf2::Matrix3x3(quat_tf1).getRPY(part_R1, part_P1, part_Y1);
+//
+//                        ROS_INFO_STREAM("Part roll in kit_tray_frame = " << part_R1);
+//                        ROS_INFO_STREAM("Part pitch in kit_tray_frame = " << part_P1);
+//                        ROS_INFO_STREAM("Part yell in kit_tray_frame= " << part_Y1);
+
+                        ROS_INFO_STREAM("[grab_bin1() inside function pose ***************************** ]:" << tmp);
+                        arm1.SendRobotTo("wrist_3_joint", part_Y1);
+                        //ros::Duration(1).sleep();
                         arm1.GripperToggle(false);
+
+
+                        // to check
+                        //geometry_msgs::PoseStamped StampedPose_in_curr, StampedPose_out_curr;
+                        StampedPose_in_curr.header.frame_id = "lc_agv_1_frame";
+                        StampedPose_in_curr.pose = qt_pose;
+                        StampedPose_out_curr = tfBuffer.transform(StampedPose_in_curr, "world");
+                        drop_pose_curr = StampedPose_out_curr.pose;
+
+                        ROS_INFO_STREAM("[grab_bin1() =====:========= [CHECKING THE FINAL POSE]==========***************************** ]:" << drop_pose_curr);
                         ///--------------------------------------------------------
                         // bool attach = arm1.DropPart(drop_pose);
                         arm1.RobotGoHome();
@@ -506,9 +591,51 @@ void AriacSensorManager::grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr
     }
 }
 
-// void AriacSensorManager::lc_agv_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr & image_msg){
-//    return;
-// }
+ void AriacSensorManager::lc_agv_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr & image_msg){
+     ros::AsyncSpinner spinner(4);
+     spinner.start();
+
+     if (image_msg->models.size() == 0)
+         return;
+     //ROS_INFO_STREAM_THROTTLE(5, "[lc_agv_1_callback]: lc_agv_1 captures '" << image_msg->models.size() << "' item(s).");
+     ros::Duration timeout(0.2);
+     size_t part_counter = 0;
+     auto img = *image_msg;
+     //this->qt = img.models[0].pose.orientation;
+     this->qt_pose = img.models[0].pose;
+     if (image_msg->models.size() > 1)
+         this->qt_pose = img.models[1].pose;
+
+
+     ROS_INFO_STREAM_THROTTLE(5,"[lc_agv_1_callback]: -------------------  " << this->qt_pose.orientation);
+
+//     for (auto & msg : image_msg->models){
+//         geometry_msgs::TransformStamped transformStamped;
+//         string camera_frame = "lc_agv_1_" + msg.type + "_" + to_string(part_counter) + "_frame";
+//         try{
+//             transformStamped = tfBuffer.lookupTransform("world", camera_frame, ros::Time(0), timeout);
+//             geometry_msgs::Pose part_pose;
+//             part_pose.position.x = transformStamped.transform.translation.x;
+//             part_pose.position.y = transformStamped.transform.translation.y;
+//             part_pose.position.z = transformStamped.transform.translation.z;
+//             part_pose.orientation.x = transformStamped.transform.rotation.x;
+//             part_pose.orientation.y = transformStamped.transform.rotation.y;
+//             part_pose.orientation.z = transformStamped.transform.rotation.z;
+//             part_pose.orientation.w = transformStamped.transform.rotation.w;
+//
+//             geometry_msgs::PoseStamped StampedPose_in, StampedPose_out;
+//             StampedPose_in.header.frame_id = "world";
+//             StampedPose_in.pose = part_pose;
+//             StampedPose_out = tfBuffer.transform(StampedPose_in, "kit_tray_1");
+//             auto agv_pose = StampedPose_out.pose;
+//
+//             ROS_INFO_STREAM("[lc_agv_1_callback]: Part pose on the tray in kit_tray_1 frame is:\n" << part_pose);
+//         }
+//         catch (tf2::TransformException &ex) {
+//             ROS_WARN("%s\n",ex.what());
+//         }
+     // }
+ }
 
 void AriacSensorManager::grab_gear(){
     ros::AsyncSpinner spinner(4);
@@ -570,8 +697,7 @@ void AriacSensorManager::grab_gear(){
                         auto drop_pose = StampedPose_out.pose;
                         drop_pose.position.z += 0.05;
 
-
-                        ///--------Get Deisred RPY from kit_tray
+                        ///--------Get Desired RPY from kit_tray
                         tf2::Quaternion quat_D;
                         tf2::fromMsg(drop_pose_.orientation, quat_D);
                         double d_R, d_P, d_Y;
@@ -579,12 +705,65 @@ void AriacSensorManager::grab_gear(){
 
                         arm1.GoToTarget1(drop_pose);
                         ros::Duration(0.5).sleep();
-                        double comp = -(d_Y -  part_ee_ang_diff);
-                        arm1.SendRobotTo("wrist_3_joint", comp);
+
+                        // ======================================================================== //
+                        geometry_msgs::PoseStamped StampedPose_in_curr, StampedPose_out_curr;
+                        StampedPose_in_curr.header.frame_id = "lc_agv_1_frame";
+                        StampedPose_in_curr.pose = qt_pose;
+                        StampedPose_out_curr = tfBuffer.transform(StampedPose_in_curr, "world");
+                        auto drop_pose_curr = StampedPose_out_curr.pose;
+
+                        tf2::Quaternion quat_D_curr;
+                        tf2::fromMsg(drop_pose_curr.orientation, quat_D_curr);
+                        double d_R_curr, d_P_curr, d_Y_curr;
+                        tf2::Matrix3x3(quat_D_curr).getRPY(d_R_curr, d_P_curr, d_Y_curr);
+                        ROS_INFO_STREAM("================ curr_yaw ============="<<d_Y_curr);   // -2.72
+
+                        transformStamped = tfBuffer.lookupTransform("world", "arm1_ee_link", ros::Time(0),
+                                                                    timeout);
+                        geometry_msgs::Pose ee_pose;
+                        ee_pose.orientation.x = transformStamped.transform.rotation.x;
+                        ee_pose.orientation.y = transformStamped.transform.rotation.y;
+                        ee_pose.orientation.z = transformStamped.transform.rotation.z;
+                        ee_pose.orientation.w = transformStamped.transform.rotation.w;
+
+                        double ee_R, ee_P, ee_Y;
+                        tf2::Quaternion quat_tf_ee;
+                        tf2::fromMsg(ee_pose.orientation, quat_tf_ee);
+                        tf2::Matrix3x3(quat_tf_ee).getRPY(ee_R, ee_P, ee_Y);
+
+                        double eediff= d_Y_curr - ee_Y;
+
+                        double req = d_Y - eediff;
+
+                        ROS_INFO_STREAM("================ ================================  diff   ========================== ============="<< eediff);
+
+                        //to edit for orientation
+                        tf2:: Quaternion myQuat;
+                        myQuat.setRPY(0,0,req);
+                        std::cout << "Checking..................................." << std::endl;
+                        ROS_INFO_STREAM("[grab_bin1()][inside function myQuat ============================= ]:" << *myQuat << *(myQuat+1) << *(myQuat+2) << *(myQuat+3));
+
+                        geometry_msgs::Pose tmp;
+                        tmp.orientation.x = *myQuat;
+                        tmp.orientation.y = *(myQuat+1);
+                        tmp.orientation.z = *(myQuat+2);
+                        tmp.orientation.w = *(myQuat+3);
+
+                        geometry_msgs::PoseStamped StampedPose_in1, StampedPose_out1;
+                        StampedPose_in1.header.frame_id = "world";
+                        StampedPose_in1.pose = tmp;
+                        StampedPose_out1 = tfBuffer.transform(StampedPose_in, "arm1_wrist_3_link");
+                        geometry_msgs::Pose poseKit = StampedPose_out1.pose;
+//
+                        tf2::Quaternion quat_tf1;
+                        tf2::fromMsg(poseKit.orientation, quat_tf1);
+                        double part_R1, part_P1, part_Y1;
+                        tf2::Matrix3x3(quat_tf1).getRPY(part_R1, part_P1, part_Y1);
+                        // ======================================================================== //
+                        arm1.SendRobotTo("wrist_3_joint", part_Y1);
                         ros::Duration(1).sleep();
                         arm1.GripperToggle(false);
-                        ///--------------------------------------------------------
-
 
                         // bool attach = arm1.DropPart(drop_pose);
                         desired_parts_info.erase(itr);
@@ -603,15 +782,4 @@ void AriacSensorManager::grab_gear(){
         }
     }
     arm1.RobotGoHome();
-}
-
-void AriacSensorManager::lc_agv_1_callback_new(const osrf_gear::LogicalCameraImage::ConstPtr & image_msg){
-    /*
-     * Callback implemented exclusively to pick up the parts picked up Arm1 on AGV1
-     */
-
-    ROS_INFO_STREAM_THROTTLE(1,"[ASM]:[lc_agv_1_callback_new]: Reading Pose of part" << *image_msg);
-    partPoseOnKitTray1 = image_msg->pose;
-//    ROS_INFO_STREAM("[ASM]:[lc_agv_1_callback_new]: Pose" << partPoseOnKitTray1);
-
 }

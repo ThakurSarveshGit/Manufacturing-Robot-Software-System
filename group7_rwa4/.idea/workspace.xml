@@ -9,7 +9,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7510a078-63e9-47b0-8e24-728df9beacac" name="Default Changelist" comment="" />
+    <list default="true" id="ae78d9ef-49cc-41e1-84be-a363fe388237" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -18,7 +18,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ProjectId" id="1ZwhOo0tPgH8YJMV1TTttiK5fjo" />
+  <component name="ProjectId" id="1b335DdOUzkKd5KVjAO02Yl5iiU" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -27,40 +27,23 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="node.js.detected.package.eslint" value="true" />
-    <property name="node.js.detected.package.tslint" value="true" />
-    <property name="node.js.path.for.package.eslint" value="project" />
-    <property name="node.js.path.for.package.tslint" value="project" />
-    <property name="node.js.selected.package.eslint" value="(autodetect)" />
-    <property name="node.js.selected.package.tslint" value="(autodetect)" />
-    <property name="settings.editor.selected.configurable" value="CMakeSettings" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="7510a078-63e9-47b0-8e24-728df9beacac" name="Default Changelist" comment="" />
-      <created>1585756034534</created>
+      <changelist id="ae78d9ef-49cc-41e1-84be-a363fe388237" name="Default Changelist" comment="" />
+      <created>1587846764719</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1585756034534</updated>
-      <workItem from="1585756047147" duration="2677000" />
-      <workItem from="1585854120307" duration="3000" />
+      <updated>1587846764719</updated>
+      <workItem from="1587846766267" duration="14228000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
-  </component>
-  <component name="WindowStateProjectService">
-    <state x="898" y="187" key="SettingsEditor" timestamp="1585757305330">
-      <screen x="67" y="27" width="1853" height="1053" />
-    </state>
-    <state x="898" y="187" key="SettingsEditor/67.27.1853.1053@67.27.1853.1053" timestamp="1585757305330" />
-    <state x="1039" y="257" width="672" height="678" key="search.everywhere.popup" timestamp="1585757600076">
-      <screen x="67" y="27" width="1853" height="1053" />
-    </state>
-    <state x="1039" y="257" width="672" height="678" key="search.everywhere.popup/67.27.1853.1053@67.27.1853.1053" timestamp="1585757600076" />
   </component>
 </project>

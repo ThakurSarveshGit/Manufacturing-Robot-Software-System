@@ -13,7 +13,7 @@ orders:
         type: piston_rod_part
         pose:
           xyz: [0.1, -0.1, 0]
-          rpy: [0, 0, 0]
+          rpy: [0, 0, 'pi/2']
       part_1:
         type: gear_part
         pose:

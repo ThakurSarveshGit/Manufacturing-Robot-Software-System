@@ -37,7 +37,6 @@ private:
     ros::Subscriber qc_1_sub; // Subscribe to the '/ariac/quality_control_sensor_2' topic
     ros::Subscriber lc_bin_1_sub; // Subscribe to the '/ariac/lc_gear' topic
     ros::Subscriber lc_agv_1_sub;
-    ros::Subscriber lc_agv_1_sub_new; // Subscribe to the '/ariac/lc_agv_1'
     bool qc_1_redFlag;
     ros::Subscriber qc_2_sub; // Subscribe to the '/ariac/quality_control_sensor_2' topic
     bool qc_2_redFlag;
@@ -45,7 +44,6 @@ private:
     // Order/Product/Pose containers
     std::vector<osrf_gear::Order> received_orders_;
     unsigned int order_number;
-    geometry_msgs::Pose partPoseOnKitTray1; // Used to pick up this part using Arm1
     std::unordered_map<std::string, geometry_msgs::Pose> belt_part_map; // map for checked part from the belt
     std::unordered_map<std::string, geometry_msgs::Pose> gear_bin_map; // map for checked part in the bin
     std::queue<std::pair<std::string, std::string>> incoming_partQ; // the queue store (part_type, part_frame_name) from the belt
@@ -59,7 +57,8 @@ private:
     bool order_receiving_flag;
     std::set<std::string> parts_to_pickup_belt;
 
-
+    tf2:: Quaternion qt;
+    geometry_msgs::Pose qt_pose;
     // Robot related
     RobotController arm1;
     RobotController arm2;
@@ -90,8 +89,7 @@ public:
     void setDesiredParts();
     void lc_bin_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr&);
     void grab_bin1(const osrf_gear::LogicalCameraImage::ConstPtr&);
-//    void lc_agv_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr &);
-    void lc_agv_1_callback_new(const osrf_gear::LogicalCameraImage::ConstPtr & image_msg);
+    void lc_agv_1_callback(const osrf_gear::LogicalCameraImage::ConstPtr &);
     void grab_gear();
 };
 
